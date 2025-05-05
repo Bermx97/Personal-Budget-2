@@ -36,6 +36,45 @@ app.post('/envelopes/:id',findEnvelope, (req, res, next) => {
     res.status(200).send(req.envelopeWanted);
 });
 
+
+app.post('/envelopes/operation', (req, res, next) => {
+    const { id, operation, amount} = req.body
+    const floatAmount = parseFloat(amount);
+    const envelopeWanted = envelopes.findIndex(x => x.id === parseFloat(id));
+    if (Number(amount)) {
+        switch (operation) {
+            case '=':
+                envelopeWanted.limit = floatAmount;
+                break;
+            case '-':
+                envelopeWanted.limit -= floatAmount;
+                break;
+            case '+':
+                envelopeWanted.limit += floatAmount;
+                break;
+            default:
+                res.status(400).send('Invalid input');
+        } res.status(200).send(`Your new limit for ${envelopeWanted.category}: ${envelopeWanted.limit}`);
+    } else {
+        res.status(400).send('Invalid input');
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+
 app.post('/envelopes/:id/:operation/:value',findEnvelope, (req, res, next) => {
     const operation = req.params.operation;
     const value = req.params.value;
@@ -58,6 +97,10 @@ app.post('/envelopes/:id/:operation/:value',findEnvelope, (req, res, next) => {
         res.status(400).send('Invalid input');
     }
 });
+
+
+*/
+
 
 app.post('/envelopes/transfer/:amount/:from/:to', (req, res, send) => {
     const amount = req.params.amount;
