@@ -69,20 +69,20 @@ app.patch('/envelopes/operation/:id', async (req, res, next) => {
     if (Number(amount)) {
         switch (operation) {
             case '=':
-                await pool.query('UPDATE envelopes SET balance = $1 WHERE id = $2 RETURNING balance', [floatAmount, envelopeId]);
+                await pool.query('UPDATE envelopes SET balance = $1 WHERE id = $2 RETURNING balance, category', [floatAmount, envelopeId]);
                 break;
             case '-':
-                await pool.query('UPDATE envelopes SET balance = balance - $1 WHERE id = $2 RETURNING balance', [floatAmount, envelopeId]);
+                await pool.query('UPDATE envelopes SET balance = balance - $1 WHERE id = $2 RETURNING balance, category', [floatAmount, envelopeId]);
                 break;
             case '+':
-                await pool.query('UPDATE envelopes SET balance = balance + $1 WHERE id = $2 RETURNING balance', [floatAmount, envelopeId]);
+                await pool.query('UPDATE envelopes SET balance = balance + $1 WHERE id = $2 RETURNING balance, category', [floatAmount, envelopeId]);
                 break;
             default:
                 res.status(400).send('Unknown operation');
         } const balance = await pool.query('SELECT balance FROM envelopes WHERE id = $1', [envelopeId]);
           res.status(200).json({
             message: 'Your new balance',
-            balance: balance.rows[0]
+            balance: balance.rows[0].balance
           });
     } else {
         res.status(400).send('Invalid input');
