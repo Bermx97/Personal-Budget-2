@@ -2,6 +2,16 @@ const express = require('express');
 const app = express();
 const { envelopes } = require('./envelopes.js');
 const { console } = require('inspector');
+require('dotenv').config();
+const { Pool } = require('pg');
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
+
 
 const PORT = process.env.PORT || 3100;
 
@@ -24,8 +34,9 @@ const findEnvelope = ('/envelopes/:id', (req, res, next) => {
     }
 });
 
-app.get('/envelopes', (req, res, nest) => {
-    res.send(envelopes);
+app.get('/envelopes', async (req, res, nest) => {
+    const result = await pool.query('SELECT * FROM envelopes');
+    res.json(result.rows);
 });
 
 app.get('/envelopes/:id',findEnvelope, (req, res, next) => {
@@ -35,7 +46,7 @@ app.get('/envelopes/:id',findEnvelope, (req, res, next) => {
 app.post('/envelopes/operation', (req, res, next) => {
     const { id, operation, amount} = req.body
     const floatAmount = parseFloat(amount);
-    const envelopeWanted = envelopes.findIndex(x => x.id === parseFloat(id));
+    const envelopeWanted = envelopes[envelopes.findIndex(x => x.id === parseFloat(id))];
     if (Number(amount)) {
         switch (operation) {
             case '=':
@@ -57,44 +68,6 @@ app.post('/envelopes/operation', (req, res, next) => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-/*
-
-
-app.post('/envelopes/:id/:operation/:value',findEnvelope, (req, res, next) => {
-    const operation = req.params.operation;
-    const value = req.params.value;
-    const floatValue = parseFloat(req.params.value);
-    if (Number(value)) {
-        switch (operation) {
-            case '=':
-                req.envelopeWanted.limit = floatValue;
-                break;
-            case '-':
-                req.envelopeWanted.limit -= floatValue;
-                break;
-            case '+':
-                req.envelopeWanted.limit += floatValue;
-                break;
-            default:
-                res.status(400).send('Invalid input');
-        } res.status(200).send(`Your new limit for ${req.envelopeWanted.category}: ${req.envelopeWanted.limit}`);
-    } else {
-        res.status(400).send('Invalid input');
-    }
-});
-
-
-*/
 
 
 app.post('/envelopes/transfer/:amount/:from/:to', (req, res, send) => {
