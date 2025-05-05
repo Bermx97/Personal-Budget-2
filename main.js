@@ -36,10 +36,13 @@ const findEnvelope = ('/envelopes/:id', (req, res, next) => {
     }
 });
 
-app.get('/envelopes', async (req, res, nest) => {
-    const result = await pool.query('SELECT * FROM envelopes');
-    //res.json(result.rows);
-    res.status(200).send('hello')
+app.get('/envelopes', async (req, res, next) => {
+    try {
+        const result = await pool.query('SELECT * FROM envelopes');
+        res.status(200).json(result.rows);
+    } catch (err) {
+        res.send(err)
+    }
 });
 
 app.get('/envelopes/:id',findEnvelope, (req, res, next) => {
