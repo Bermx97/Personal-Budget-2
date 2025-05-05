@@ -5,6 +5,13 @@ const { console } = require('inspector');
 
 const PORT = 3100;
 
+app.use(express.json())
+
+app.get('/', (req, res, next) => {
+    res.status(200).send('welcome')
+})
+
+
 const findEnvelope = ('/envelopes/:id', (req, res, next) => {
     const index = envelopes.findIndex(x => x.id === parseFloat(req.params.id));
     const envelopeWanted = envelopes[index];
@@ -29,7 +36,7 @@ app.post('/envelopes/:id',findEnvelope, (req, res, next) => {
     res.status(200).send(req.envelopeWanted);
 });
 
-app.post('/envelopes/:id/limit/:operation/:value',findEnvelope, (req, res, next) => {
+app.post('/envelopes/:id/:operation/:value',findEnvelope, (req, res, next) => {
     const operation = req.params.operation;
     const value = req.params.value;
     const floatValue = parseFloat(req.params.value);
@@ -52,18 +59,18 @@ app.post('/envelopes/:id/limit/:operation/:value',findEnvelope, (req, res, next)
     }
 });
 
-app.post('/envelopes/transfer/:amound/:from/:to', (req, res, send) => {
-    const amound = req.params.amound;
-    const floatAmound = parseFloat(amound);
+app.post('/envelopes/transfer/:amount/:from/:to', (req, res, send) => {
+    const amount = req.params.amount;
+    const floatAmount = parseFloat(amount);
     const fromIndex = envelopes.findIndex(x => x.id === parseFloat(req.params.from));
     const fromEnvelopeWanted = envelopes[fromIndex];
     const toIndex = envelopes.findIndex(x => x.id === parseFloat(req.params.to));
     const toEnvelopeWanted = envelopes[toIndex];
     if (fromIndex !== -1 && toIndex !== -1) {
-        if (Number(amound)) {
-            fromEnvelopeWanted.limit -= floatAmound;
-            toEnvelopeWanted.limit += floatAmound;
-            res.status(200).send(`$transfer: ${amound} from envelope '${fromEnvelopeWanted.category}' to envelope '${toEnvelopeWanted.category}' was successful`);
+        if (Number(amount)) {
+            fromEnvelopeWanted.limit -= floatAmount;
+            toEnvelopeWanted.limit += floatAmount;
+            res.status(200).send(`$transfer: ${amount} from envelope '${fromEnvelopeWanted.category}' to envelope '${toEnvelopeWanted.category}' was successful`);
         } else {
             res.status(400).send('Invalid input');
         }       
