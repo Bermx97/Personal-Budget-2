@@ -32,11 +32,6 @@ app.get('/envelopes/:id',findEnvelope, (req, res, next) => {
    res.status(200).send(req.envelopeWanted);
 });
 
-app.post('/envelopes/:id',findEnvelope, (req, res, next) => {
-    res.status(200).send(req.envelopeWanted);
-});
-
-
 app.post('/envelopes/operation', (req, res, next) => {
     const { id, operation, amount} = req.body
     const floatAmount = parseFloat(amount);
