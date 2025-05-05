@@ -11,7 +11,7 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false,
-  },
+  }
 });
 
 
@@ -39,7 +39,7 @@ const findEnvelope = ('/envelopes/:id', (req, res, next) => {
 app.get('/envelopes', async (req, res, nest) => {
     const result = await pool.query('SELECT * FROM envelopes');
     //res.json(result.rows);
-    res.status(200).send(result)
+    res.status(200).send('hello')
 });
 
 app.get('/envelopes/:id',findEnvelope, (req, res, next) => {
