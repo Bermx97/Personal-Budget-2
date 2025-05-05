@@ -4,7 +4,7 @@ const { envelopes } = require('./envelopes.js');
 const { console } = require('inspector');
 require('dotenv').config();
 const { Pool } = require('pg');
-const cors = require('cors');
+//const cors = require('cors');
 
 
 const pool = new Pool({
@@ -16,7 +16,7 @@ const pool = new Pool({
 
 
 const PORT = process.env.PORT || 3100;
-app.use(cors());
+//app.use(cors());
 app.use(express.json());
 
 app.get('/', (req, res, next) => {
@@ -36,6 +36,7 @@ const findEnvelope = ('/envelopes/:id', (req, res, next) => {
     }
 });
 
+//get all envelopes
 app.get('/envelopes', async (req, res, next) => {
     try {
         const result = await pool.query('SELECT * FROM envelopes');
@@ -45,9 +46,96 @@ app.get('/envelopes', async (req, res, next) => {
     }
 });
 
-app.get('/envelopes/:id',findEnvelope, (req, res, next) => {
-   res.status(200).send(req.envelopeWanted);
+
+//get single envelope by id
+app.get('/envelopes/:id', async (req, res, next) => {
+    const envelopeId = req.params.id;
+    try {
+        const result = await pool.query('SELECT * FROM envelopes WHERE id = $1', [envelopeId]);
+        if (result.rows.length === 0) {
+            res.status(404).json({ error: 'Envelope not found'});
+        }
+        res.status(200).json(result.rows);
+    } catch (err) {
+        res.status(500).send(err);
+    }
 });
+
+
+app.patch('/envelopes/operation/:id', async (req, res, next) => {
+    const envelopeId = req.params.id
+    const { operation, amount } = req.body
+    const floatAmount = parseFloat(amount);
+    if (Number(amount)) {
+        switch (operation) {
+            case '=':
+                await pool.query('UPDATE envelopes SET balance = $1 WHERE id = $2 RETURNING balance', [floatAmount, envelopeId]);
+                break;
+            case '-':
+                await pool.query('UPDATE envelopes SET balance = balance - $1 WHERE id = $2 RETURNING balance', [floatAmount, envelopeId]);
+                break;
+            case '+':
+                await pool.query('UPDATE envelopes SET balance = balance + $1 WHERE id = $2 RETURNING balance', [floatAmount, envelopeId]);
+                break;
+            default:
+                res.status(400).send('Unknown operation');
+        } const balance = await pool.query('SELECT balance FROM envelopes WHERE id = $1', [envelopeId]);
+          res.status(200).json({
+            message: 'Your new balance',
+            balance: balance.rows[0]
+          });
+    } else {
+        res.status(400).send('Invalid input');
+    }
+});
+
+
+
+
+/*
+
+    if (Number(amount)) {
+        switch (operation) {
+            case '=':
+                envelopeWanted.limit = floatAmount;
+                break;
+            case '-':
+                envelopeWanted.limit -= floatAmount;
+                break;
+            case '+':
+                envelopeWanted.limit += floatAmount;
+                break;
+            default:
+                res.status(400).send('Invalid input');
+        } res.status(200).send(`Your new limit for ${envelopeWanted.category}: ${envelopeWanted.limit}`);
+    } else {
+        res.status(400).send('Invalid input');
+    }
+});
+
+
+
+
+
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 
 app.post('/envelopes/operation', (req, res, next) => {
     const { id, operation, amount} = req.body
@@ -73,7 +161,7 @@ app.post('/envelopes/operation', (req, res, next) => {
 });
 
 
-
+*/
 
 
 app.post('/envelopes/transfer/:amount/:from/:to', (req, res, send) => {
