@@ -4,6 +4,8 @@ const { envelopes } = require('./envelopes.js');
 const { console } = require('inspector');
 require('dotenv').config();
 const { Pool } = require('pg');
+const cors = require('cors');
+
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -14,8 +16,8 @@ const pool = new Pool({
 
 
 const PORT = process.env.PORT || 3100;
-
-app.use(express.json())
+app.use(cors());
+app.use(express.json());
 
 app.get('/', (req, res, next) => {
     res.status(200).send('welcome')
