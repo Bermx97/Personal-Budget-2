@@ -28,7 +28,7 @@ app.get('/', (req, res, next) => {
 // get all envelopes
 app.get('/envelopes', async (req, res, next) => {
     try {
-        const result = await pool.query('SELECT * FROM envelopes ORDER BY id');
+        const result = await pool.query('SELECT * FROM envelopes, transactions ORDER BY id');
         res.status(200).json(result.rows);
     } catch (err) {
         res.send(err);
@@ -114,6 +114,7 @@ app.post('/envelopes/transfer', async (req, res, next) => {
         if (toResult.rows.length === 0) {
             throw new Error('Target envelope not found')
         }
+        await pool.query('INSERT INTO transactions (amount, from_id, to_id) VALUES ($1, $2, $3)', [amount, from, to]);
         await client.query('COMMIT');
 
         res.status(200).json({
