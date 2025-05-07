@@ -28,12 +28,39 @@ app.get('/', (req, res, next) => {
 // get all envelopes
 app.get('/envelopes', async (req, res, next) => {
     try {
-        const result = await pool.query('SELECT * FROM envelopes, transactions ORDER BY id');
+        const result = await pool.query('SELECT * FROM envelopes ORDER BY id');
         res.status(200).json(result.rows);
     } catch (err) {
         res.send(err);
     }
 });
+
+// get all transactions history
+app.get('/envelopes/transactions', async (req, res, next) => {
+    try {
+        const result = await pool.query('SELECT * FROM transactions ORDER BY id');
+        res.status(200).json(result.rows);
+    } catch (err) {
+        res.send(err);
+    }
+});
+
+// get transactions history by id
+app.get('/envelopes/transactions/:id', async (req, res, next) => {
+    const envelopeId = req.params.id;
+    try {
+        const result = await pool.query('SELECT * FROM transactions WHERE from_id = $1 OR to_id = $1 ORDER BY from_id' , [envelopeId]);
+        if (result.rows.length === 0) {
+            res.status(400).json({ error: 'Envelope history not found' })
+        } res.status(200).json(result.rows)
+    } catch (err) {
+        res.status(500).send(err);
+    }
+})
+
+
+
+
 
 
 // get single envelope by id
