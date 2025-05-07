@@ -1,7 +1,6 @@
 const express = require('express');
 const app = express();
-const { envelopes } = require('./envelopes.js');
-const { console } = require('inspector');  // do wyrzucenia jak dodamy wszystkie ścieżki z db
+const { console } = require('inspector');
 require('dotenv').config();
 const { Pool } = require('pg');
 const { randomFillSync } = require('crypto');
@@ -23,18 +22,6 @@ app.get('/', (req, res, next) => {
     res.status(200).send('welcome')
 })
 
- //to też do wywalenia
-const findEnvelope = ('/envelopes/:id', (req, res, next) => {
-    const index = envelopes.findIndex(x => x.id === parseFloat(req.params.id));
-    const envelopeWanted = envelopes[index];
-    if (index !== -1) {
-        req.index = index;
-        req.envelopeWanted = envelopeWanted;
-        next();
-    } else {
-        res.status(404).send('Cant find given envelop');
-    }
-});
 
 
 // get all envelopes
@@ -129,18 +116,21 @@ app.post('/envelopes/transfer', async (req, res, next) => {
     }
 });
 
-/*
 
-app.delete('/envelopes/:id', (req, res, next) => {
-    if (req.envelopeWanted) {
-        envelopes.splice(req.index, 1);
-    res.status(200).send(`deleted envelope with id: ${req.envelopeWanted.id}`);
-    } else {
-        res.status(404).send(`Cant find envolope with id: ${req.envelopeWanted.id}`);
+// it is responsible for removing by envelope id
+app.delete('/envelopes/:id', async (req, res, next) => {
+    try {
+        const envelopeId = req.params.id;
+        const result = await pool.query('DELETE FROM envelopes WHERE id = $1 RETURNING *', [envelopeId])
+        if (result.rows.length === 0) {
+            throw new Error("A letter with this id doesn`t exist");
+        }
+        res.status(200).json(`Envelope with id: ${envelopeId} has been removed`);
+    } catch (err) {
+        res.status(500).json({ error: err.message })
     }
 });
 
-*/
 
 
 
