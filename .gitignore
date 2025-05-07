@@ -7,7 +7,7 @@ node_modules/
 # Logi
 *.log
 
-# Systemowe pliki
+# System
 .DS_Store
 Thumbs.db
 

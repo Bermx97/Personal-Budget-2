@@ -1,10 +1,11 @@
 const express = require('express');
 const app = express();
 const { envelopes } = require('./envelopes.js');
-const { console } = require('inspector');
+const { console } = require('inspector');  // do wyrzucenia jak dodamy wszystkie ścieżki z db
 require('dotenv').config();
 const { Pool } = require('pg');
-//const cors = require('cors');
+const { randomFillSync } = require('crypto');
+
 
 
 const pool = new Pool({
@@ -16,14 +17,13 @@ const pool = new Pool({
 
 
 const PORT = process.env.PORT || 3100;
-//app.use(cors());
 app.use(express.json());
 
 app.get('/', (req, res, next) => {
     res.status(200).send('welcome')
 })
 
-
+ //to też do wywalenia
 const findEnvelope = ('/envelopes/:id', (req, res, next) => {
     const index = envelopes.findIndex(x => x.id === parseFloat(req.params.id));
     const envelopeWanted = envelopes[index];
@@ -36,24 +36,25 @@ const findEnvelope = ('/envelopes/:id', (req, res, next) => {
     }
 });
 
-//get all envelopes
+
+// get all envelopes
 app.get('/envelopes', async (req, res, next) => {
     try {
         const result = await pool.query('SELECT * FROM envelopes');
         res.status(200).json(result.rows);
     } catch (err) {
-        res.send(err)
+        res.send(err);
     }
 });
 
 
-//get single envelope by id
+// get single envelope by id
 app.get('/envelopes/:id', async (req, res, next) => {
     const envelopeId = req.params.id;
     try {
         const result = await pool.query('SELECT * FROM envelopes WHERE id = $1', [envelopeId]);
         if (result.rows.length === 0) {
-            res.status(404).json({ error: 'Envelope not found'});
+            res.status(404).json({ error: 'Envelope not found' });
         }
         res.status(200).json(result.rows);
     } catch (err) {
@@ -61,21 +62,21 @@ app.get('/envelopes/:id', async (req, res, next) => {
     }
 });
 
-
+// it is responsible for the transactions
 app.patch('/envelopes/operation/:id', async (req, res, next) => {
-    const envelopeId = req.params.id
-    const { operation, amount } = req.body
+    const envelopeId = req.params.id;
+    const { operation, amount } = req.body;
     const floatAmount = parseFloat(amount);
     if (Number(amount)) {
         switch (operation) {
             case '=':
-                await pool.query('UPDATE envelopes SET balance = $1 WHERE id = $2 RETURNING balance, category', [floatAmount, envelopeId]);
+                await pool.query('UPDATE envelopes SET balance = $1 WHERE id = $2', [floatAmount, envelopeId]);
                 break;
             case '-':
-                await pool.query('UPDATE envelopes SET balance = balance - $1 WHERE id = $2 RETURNING balance, category', [floatAmount, envelopeId]);
+                await pool.query('UPDATE envelopes SET balance = balance - $1 WHERE id = $2', [floatAmount, envelopeId]);
                 break;
             case '+':
-                await pool.query('UPDATE envelopes SET balance = balance + $1 WHERE id = $2 RETURNING balance, category', [floatAmount, envelopeId]);
+                await pool.query('UPDATE envelopes SET balance = balance + $1 WHERE id = $2', [floatAmount, envelopeId]);
                 break;
             default:
                 res.status(400).send('Unknown operation');
@@ -91,98 +92,44 @@ app.patch('/envelopes/operation/:id', async (req, res, next) => {
 
 
 
+// it is responsible for the transfer
+app.post('/envelopes/transfer', async (req, res, next) => {
+    const { amount, from, to } = req.body;
+    if (!amount || isNaN(amount), amount <= 0) {
+        return res.status(400).json({ error: 'Incorrect amount' })
+    }
+    
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+        const fromResult = await pool.query('UPDATE envelopes SET balance = balance - $1 WHERE id = $2 RETURNING *', [amount, from]);
+        if (fromResult.rows.length === 0) {
+            throw new Error('Source envelope not found')
+        }
+        if (fromResult.rows[0].balance < 0) {
+            throw new Error('Insufficient funds in the account')
+        }
+        const toResult = await pool.query('UPDATE envelopes SET balance = balance + $1 WHERE id = $2 RETURNING *', [amount, to]);
+        if (toResult.rows.length === 0) {
+            throw new Error('Target envelope not found')
+        }
+        await client.query('COMMIT');
+
+        res.status(200).json({
+            message: 'Transfer completed successfully',
+            from: fromResult.rows[0],
+            to: toResult.rows[0]
+          });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
 
 /*
-
-    if (Number(amount)) {
-        switch (operation) {
-            case '=':
-                envelopeWanted.limit = floatAmount;
-                break;
-            case '-':
-                envelopeWanted.limit -= floatAmount;
-                break;
-            case '+':
-                envelopeWanted.limit += floatAmount;
-                break;
-            default:
-                res.status(400).send('Invalid input');
-        } res.status(200).send(`Your new limit for ${envelopeWanted.category}: ${envelopeWanted.limit}`);
-    } else {
-        res.status(400).send('Invalid input');
-    }
-});
-
-
-
-
-
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-
-app.post('/envelopes/operation', (req, res, next) => {
-    const { id, operation, amount} = req.body
-    const floatAmount = parseFloat(amount);
-    const envelopeWanted = envelopes[envelopes.findIndex(x => x.id === parseFloat(id))];
-    if (Number(amount)) {
-        switch (operation) {
-            case '=':
-                envelopeWanted.limit = floatAmount;
-                break;
-            case '-':
-                envelopeWanted.limit -= floatAmount;
-                break;
-            case '+':
-                envelopeWanted.limit += floatAmount;
-                break;
-            default:
-                res.status(400).send('Invalid input');
-        } res.status(200).send(`Your new limit for ${envelopeWanted.category}: ${envelopeWanted.limit}`);
-    } else {
-        res.status(400).send('Invalid input');
-    }
-});
-
-
-*/
-
-
-app.post('/envelopes/transfer/:amount/:from/:to', (req, res, send) => {
-    const amount = req.params.amount;
-    const floatAmount = parseFloat(amount);
-    const fromIndex = envelopes.findIndex(x => x.id === parseFloat(req.params.from));
-    const fromEnvelopeWanted = envelopes[fromIndex];
-    const toIndex = envelopes.findIndex(x => x.id === parseFloat(req.params.to));
-    const toEnvelopeWanted = envelopes[toIndex];
-    if (fromIndex !== -1 && toIndex !== -1) {
-        if (Number(amount)) {
-            fromEnvelopeWanted.limit -= floatAmount;
-            toEnvelopeWanted.limit += floatAmount;
-            res.status(200).send(`$transfer: ${amount} from envelope '${fromEnvelopeWanted.category}' to envelope '${toEnvelopeWanted.category}' was successful`);
-        } else {
-            res.status(400).send('Invalid input');
-        }       
-    } else {
-        res.status(404).send('Cant find given envelope');
-    }
-});
 
 app.delete('/envelopes/:id', (req, res, next) => {
     if (req.envelopeWanted) {
@@ -193,7 +140,7 @@ app.delete('/envelopes/:id', (req, res, next) => {
     }
 });
 
-
+*/
 
 
 
