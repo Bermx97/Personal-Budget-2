@@ -18,6 +18,7 @@ const pool = new Pool({
 const PORT = process.env.PORT || 3100;
 app.use(express.json());
 
+
 app.get('/', (req, res, next) => {
     res.status(200).send('welcome')
 })
@@ -27,7 +28,7 @@ app.get('/', (req, res, next) => {
 // get all envelopes
 app.get('/envelopes', async (req, res, next) => {
     try {
-        const result = await pool.query('SELECT * FROM envelopes');
+        const result = await pool.query('SELECT * FROM envelopes ORDER BY id');
         res.status(200).json(result.rows);
     } catch (err) {
         res.send(err);
@@ -48,6 +49,18 @@ app.get('/envelopes/:id', async (req, res, next) => {
         res.status(500).send(err);
     }
 });
+
+
+// it is responsible for adding new envelope
+app.post('/envelopes', async (req, res, next) => {
+    const { id, category, balance } = req.body;
+    const result = await pool.query('INSERT INTO envelopes VALUES ($1, $2, $3) RETURNING *', [id, category, balance]);
+    res.status(200).json({ 
+        message: 'New envelope added',
+        result: result.rows[0]
+     })
+});
+
 
 // it is responsible for the transactions
 app.patch('/envelopes/operation/:id', async (req, res, next) => {
