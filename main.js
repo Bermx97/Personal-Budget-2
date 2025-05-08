@@ -14,16 +14,12 @@ const pool = new Pool({
   }
 });
 
-
 const PORT = process.env.PORT || 3100;
 app.use(express.json());
 
-
 app.get('/', (req, res, next) => {
     res.status(200).send('welcome')
-})
-
-
+});
 
 // get all envelopes
 app.get('/envelopes', async (req, res, next) => {
@@ -38,7 +34,7 @@ app.get('/envelopes', async (req, res, next) => {
 // get all transactions history
 app.get('/envelopes/transactions', async (req, res, next) => {
     try {
-        const result = await pool.query('SELECT * FROM transactions ORDER BY id');
+        const result = await pool.query('SELECT * FROM transactions ORDER BY date DESC');
         res.status(200).json(result.rows);
     } catch (err) {
         res.send(err);
@@ -49,19 +45,14 @@ app.get('/envelopes/transactions', async (req, res, next) => {
 app.get('/envelopes/transactions/:id', async (req, res, next) => {
     const envelopeId = req.params.id;
     try {
-        const result = await pool.query('SELECT * FROM transactions WHERE from_id = $1 OR to_id = $1 ORDER BY from_id' , [envelopeId]);
+        const result = await pool.query('SELECT * FROM transactions WHERE from_id = $1 OR to_id = $1 ORDER BY date DESC', [envelopeId]);
         if (result.rows.length === 0) {
-            res.status(400).json({ error: 'Envelope history not found' })
-        } res.status(200).json(result.rows)
+            res.status(400).json({ error: 'Envelope history not found' });
+        } res.status(200).json(result.rows);
     } catch (err) {
         res.status(500).send(err);
     }
-})
-
-
-
-
-
+});
 
 // get single envelope by id
 app.get('/envelopes/:id', async (req, res, next) => {
@@ -123,7 +114,7 @@ app.patch('/envelopes/operation/:id', async (req, res, next) => {
 app.post('/envelopes/transfer', async (req, res, next) => {
     const { amount, from, to } = req.body;
     if (!amount || isNaN(amount), amount <= 0) {
-        return res.status(400).json({ error: 'Incorrect amount' })
+        return res.status(400).json({ error: 'Incorrect amount' });
     }
     
     const client = await pool.connect();
@@ -132,14 +123,14 @@ app.post('/envelopes/transfer', async (req, res, next) => {
         await client.query('BEGIN');
         const fromResult = await pool.query('UPDATE envelopes SET balance = balance - $1 WHERE id = $2 RETURNING *', [amount, from]);
         if (fromResult.rows.length === 0) {
-            throw new Error('Source envelope not found')
+            throw new Error('Source envelope not found');
         }
         if (fromResult.rows[0].balance < 0) {
-            throw new Error('Insufficient funds in the account')
+            throw new Error('Insufficient funds in the account');
         }
         const toResult = await pool.query('UPDATE envelopes SET balance = balance + $1 WHERE id = $2 RETURNING *', [amount, to]);
         if (toResult.rows.length === 0) {
-            throw new Error('Target envelope not found')
+            throw new Error('Target envelope not found');
         }
         await pool.query('INSERT INTO transactions (amount, from_id, to_id) VALUES ($1, $2, $3)', [amount, from, to]);
         await client.query('COMMIT');
@@ -162,13 +153,13 @@ app.post('/envelopes/transfer', async (req, res, next) => {
 app.delete('/envelopes/:id', async (req, res, next) => {
     try {
         const envelopeId = req.params.id;
-        const result = await pool.query('DELETE FROM envelopes WHERE id = $1 RETURNING *', [envelopeId])
+        const result = await pool.query('DELETE FROM envelopes WHERE id = $1 RETURNING *', [envelopeId]);
         if (result.rows.length === 0) {
             throw new Error("A letter with this id doesn`t exist");
         }
         res.status(200).json(`Envelope with id: ${envelopeId} has been removed`);
     } catch (err) {
-        res.status(500).json({ error: err.message })
+        res.status(500).json({ error: err.message });
     }
 });
 
