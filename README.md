@@ -1,6 +1,6 @@
 # Envelopes API
 
-You can access the API at: (https://personal-budget-2-8zoz.onrender.com/envelopes/transactions/1)
+You can access the API at: (https://personal-budget-2-8zoz.onrender.com/envelopes)
 
 **Envelopes API** is a budgeting management system that uses virtual envelopes to organize expenses. It allows you to create, view, update, and delete budget envelopes. Each envelope represents a specific spending category, like **Rent**, **Groceries**, **Transport**.
 
